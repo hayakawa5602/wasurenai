@@ -1,6 +1,6 @@
 // Service Worker：アプリの画面をスマホに保存して、電波が弱くても開けるようにする。
 // 通知をタップしたときにアプリを開く役目もある。
-const CACHE = "wasurenashi-v1";
+const CACHE = "wasurenashi-v2";
 const FILES = [
   "./", "./index.html", "./css/style.css", "./manifest.webmanifest",
   "./js/app.js", "./js/predict.js", "./js/weather.js", "./js/location.js",

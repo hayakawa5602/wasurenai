@@ -64,6 +64,19 @@
         <div class="card">
           <div class="label">きょうの予定（タップで選ぶ）</div>
           <div class="chips" id="events"></div>
+          <form class="ev-form" id="evForm" hidden>
+            <label class="field">予定の名前
+              <input id="evName" maxlength="15" placeholder="例：病院、子どもの送迎、資格試験" required>
+            </label>
+            <label class="field">この予定で使う持ち物（「、」で区切る）
+              <input id="evItems" maxlength="120" placeholder="例：保険証、診察券、お薬手帳">
+            </label>
+            <p class="sub" id="evError" role="alert" hidden></p>
+            <div class="row">
+              <button class="btn" type="submit">追加して選ぶ</button>
+              <button class="btn ghost" type="button" id="evCancel">やめる</button>
+            </div>
+          </form>
         </div>
 
         <div class="card">
@@ -120,6 +133,11 @@
           <div class="setting"><div><b>家を出たら知らせる</b><p class="sub">自宅から200m離れたとき</p></div><input type="checkbox" class="switch" id="geoNotify" aria-label="家を出たら知らせる"></div>
           <button class="btn ghost block" id="testNotify" type="button">通知をためす</button>
           <p class="sub">※ 通知はアプリを開いているとき（ホーム画面に追加して起動中のときを含む）に届きます。</p>
+        </div>
+
+        <div class="card">
+          <div class="label">自分で追加した予定</div>
+          <div id="myEvents"></div>
         </div>
 
         <div class="card">

@@ -11,7 +11,7 @@ const HOME_RADIUS = 200; // 自宅とみなす範囲（m）
 const WD = ["日", "月", "火", "水", "木", "金", "土"];
 
 // ---------- 状態（すべてスマホの中に保存） ----------
-const defaults = { tNight: "21:00", tLeave: "07:30", geoNotify: true, geoConsent: null, city: "nagoya", home: null, lastEvents: ["出社"] };
+const defaults = { tNight: "21:00", tLeave: "07:30", geoNotify: true, geoConsent: null, city: "nagoya", home: null, lastEvents: ["出社"], customEvents: [] };
 let settings = { ...defaults, ...load("settings", {}) };
 let history = load("history", {});          // { 持ち物名: 忘れた回数 }
 let customAlways = load("customAlways", []); // 毎日持つ物（自分で追加）
@@ -33,6 +33,7 @@ const items = () => predict({
   weather: weather?.today ?? null,
   history,
   custom: [...customAlways, ...day.customToday],
+  customEvents: settings.customEvents,
 });
 const remaining = () => items().filter((i) => !day.checked[i.name]);
 
@@ -77,7 +78,15 @@ function render() {
   } else alert.hidden = true;
 
   // 予定のボタン
-  $("#events").innerHTML = EVENTS.map((e) => `<button class="chip" type="button" aria-pressed="${day.events.includes(e)}" data-e="${esc(e)}">${esc(e)}</button>`).join("");
+  const chip = (name, mine) => `<button class="chip${mine ? " mine" : ""}" type="button" aria-pressed="${day.events.includes(name)}" data-e="${esc(name)}">${esc(name)}</button>`;
+  $("#events").innerHTML = EVENTS.map((e) => chip(e, false)).join("")
+    + settings.customEvents.map((c) => chip(c.name, true)).join("")
+    + `<button class="chip add-ev" type="button" id="evOpen" aria-expanded="${!$("#evForm").hidden}">＋ 予定を追加</button>`;
+
+  // 自分で追加した予定（設定画面）
+  $("#myEvents").innerHTML = settings.customEvents.length
+    ? settings.customEvents.map((c) => `<div class="my-ev"><div><b>${esc(c.name)}</b><p class="sub">${c.items.length ? esc(c.items.join("、")) : "持ち物の登録なし"}</p></div><button class="btn ghost small" type="button" data-del-ev="${esc(c.name)}">削除</button></div>`).join("")
+    : `<p class="sub">「きょう」の画面の「＋ 予定を追加」から、自分の予定と持ち物を登録できます。</p>`;
 
   // 持ち物リスト
   const tick = '<svg viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg>';
@@ -197,10 +206,47 @@ const minutes = (hm) => { const [h, m] = hm.split(":").map(Number); return h * 6
 
 // ---------- 操作 ----------
 $("#events").addEventListener("click", (e) => {
+  if (e.target.closest("#evOpen")) { openEventForm(); return; }
   const b = e.target.closest("[data-e]"); if (!b) return;
   const name = b.dataset.e;
   day.events = day.events.includes(name) ? day.events.filter((x) => x !== name) : [...day.events, name];
   settings.lastEvents = day.events; saveSettings(); saveDay(); render();
+});
+
+// ---------- 予定を自分で追加する ----------
+function openEventForm() {
+  $("#evForm").hidden = false; $("#evError").hidden = true; render();
+  $("#evName").focus();
+}
+function closeEventForm() {
+  $("#evForm").hidden = true; $("#evForm").reset(); render();
+  $("#evOpen")?.focus();
+}
+$("#evCancel").addEventListener("click", closeEventForm);
+$("#evForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const name = $("#evName").value.trim();
+  const err = $("#evError");
+  if (!name) { err.textContent = "予定の名前を入力してください"; err.hidden = false; return; }
+  if (EVENTS.includes(name) || settings.customEvents.some((c) => c.name === name)) {
+    err.textContent = `「${name}」はすでにあります。ボタンをタップして選んでください`; err.hidden = false; return;
+  }
+  // 「、」「,」「，」や改行で区切って、空と重複を取りのぞく（最大10こ）
+  const its = [...new Set($("#evItems").value.split(/[、,，\n]/).map((x) => x.trim()).filter(Boolean))].slice(0, 10);
+  settings.customEvents.push({ name, items: its });
+  day.events = [...day.events, name];
+  settings.lastEvents = day.events;
+  saveSettings(); saveDay();
+  toast(its.length ? `「${name}」を追加しました（持ち物${its.length}こ）` : `「${name}」を追加しました`);
+  closeEventForm();
+});
+$("#myEvents").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-del-ev]"); if (!b) return;
+  const name = b.dataset.delEv;
+  settings.customEvents = settings.customEvents.filter((c) => c.name !== name);
+  day.events = day.events.filter((x) => x !== name);
+  settings.lastEvents = settings.lastEvents.filter((x) => x !== name);
+  saveSettings(); saveDay(); render(); toast(`「${name}」を削除しました`);
 });
 
 $("#list").addEventListener("click", (e) => {

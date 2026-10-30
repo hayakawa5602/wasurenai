@@ -65,9 +65,10 @@ const WEATHER_RULES = [
  * @param {object|null} p.weather {rainProb, tMax, tMin}
  * @param {object} p.history    { 持ち物名: 忘れた回数 }
  * @param {string[]} p.custom   自分で追加した物
+ * @param {{name:string, items:string[]}[]} [p.customEvents] 自分で追加した予定と、その予定の持ち物
  * @returns {{name:string, why:string, tag:string}[]}
  */
-export function predict({ events, weather, history, custom }) {
+export function predict({ events, weather, history, custom, customEvents = [] }) {
   const list = [];
   const add = (item, tag) => {
     if (!list.some((x) => x.name === item.name)) list.push({ ...item, tag }); // 重複は追加しない
@@ -78,7 +79,12 @@ export function predict({ events, weather, history, custom }) {
   else add({ name: "スマホ", why: "毎日の必需品" }, "基本");
 
   // 予定の数だけくり返して、予定ごとの持ち物を追加
-  for (const e of events) (EVENT_ITEMS[e] || []).forEach((i) => add(i, "予定"));
+  for (const e of events) {
+    if (EVENT_ITEMS[e]) { EVENT_ITEMS[e].forEach((i) => add(i, "予定")); continue; }
+    // 自分で追加した予定なら、登録した持ち物を使う
+    const mine = customEvents.find((c) => c.name === e);
+    if (mine) mine.items.forEach((name) => add({ name, why: `「${e}」の予定で使う` }, "予定"));
+  }
 
   // 天気の条件分岐（外出する日だけ）
   if (weather && goOut) {
