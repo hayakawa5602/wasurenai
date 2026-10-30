@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>わすれナシ</title>
+  <meta name="description" content="天気・予定・忘れ物の記録から、その日に必要な持ち物を教える忘れ物ゼロアプリ">
+  <meta name="theme-color" content="#13836A">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Zen+Maru+Gothic:wght@700;900&family=JetBrains+Mono:wght@500;700&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="top">
+      <div>
+        <h1 class="brand">わすれ<span>ナシ</span></h1>
+        <p class="sub" id="todayDate"></p>
+      </div>
+      <p class="loc-badge" id="locBadge" hidden>位置情報を使用中</p>
+    </header>
+
+    <!-- 通知バナー（アプリを開いているときの表示用） -->
+    <div class="banner" id="banner" role="status" aria-live="polite">
+      <div class="appicon" aria-hidden="true">ナ</div>
+      <div><b>わすれナシ</b><p id="bannerText"></p></div>
+    </div>
+
+    <main id="screen">
+      <!-- ===== きょう ===== -->
+      <section class="view" id="v-today">
+        <div class="ctx">
+          <div class="card">
+            <div class="label">きょうの天気</div>
+            <div class="big" id="wxTemp">--°</div>
+            <div class="sub" id="wxDesc">天気を取得しています</div>
+          </div>
+          <div class="card">
+            <div class="label">現在地</div>
+            <div class="big loc" id="locName">--</div>
+            <div class="sub" id="locDesc">位置情報はオフです</div>
+          </div>
+        </div>
+
+        <div class="card consent" id="consent" hidden>
+          <h2>位置情報を使ってもいいですか？</h2>
+          <p>次の2つだけに使います。位置は保存も送信もしません（自宅の位置だけはこのスマホの中に保存します）。</p>
+          <ul>
+            <li>今いる場所の天気を調べる</li>
+            <li>自宅を出たときに、未チェックの持ち物を知らせる</li>
+          </ul>
+          <div class="row">
+            <button class="btn" id="geoAllow" type="button">使う</button>
+            <button class="btn ghost" id="geoDeny" type="button">使わない（地域を選ぶ）</button>
+          </div>
+        </div>
+
+        <div class="alert" id="locAlert" hidden></div>
+
+        <div class="card">
+          <div class="label">きょうの予定（タップで選ぶ）</div>
+          <div class="chips" id="events"></div>
+        </div>
+
+        <div class="card">
+          <div class="progress">
+            <svg class="ring" viewBox="0 0 80 80" aria-hidden="true">
+              <circle class="bg" cx="40" cy="40" r="32"/>
+              <circle class="fg" id="ringFg" cx="40" cy="40" r="32" stroke-dasharray="201" stroke-dashoffset="201" transform="rotate(-90 40 40)"/>
+              <text x="40" y="46" text-anchor="middle" id="ringTxt">0/0</text>
+            </svg>
+            <div>
+              <h2 id="progTitle">あと0こ</h2>
+              <p class="sub" id="progSub"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="ai-head">
+            <h2>AIが予想した持ち物</h2>
+            <span class="ai-badge">AI予測</span>
+          </div>
+          <p class="sub">天気・予定・あなたの忘れ物の記録から選びました。最後に決めるのはあなたです。</p>
+          <div class="list" id="list"></div>
+          <form class="add" id="addForm">
+            <input id="addInput" placeholder="持ち物を追加（例：印鑑）" aria-label="持ち物を追加" maxlength="30">
+            <select id="addScope" aria-label="追加する期間">
+              <option value="today">きょうだけ</option>
+              <option value="always">毎日</option>
+            </select>
+            <button class="btn" type="submit">追加</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- ===== ロック画面（イメージ） ===== -->
+      <section class="lock" id="v-lock" hidden>
+        <div class="date" id="lockDate"></div>
+        <div class="clock" id="lockClock">--:--</div>
+        <div class="widgets">
+          <div class="wd"><span class="k">のこり</span><span class="v" id="lwLeft">0</span><span class="s">こ未チェック</span></div>
+          <div class="wd"><span class="k">天気</span><span class="v" id="lwTemp">--°</span><span class="s" id="lwWx"></span></div>
+          <div class="wd wide"><span class="k">わすれナシ ・ まだの持ち物</span><ul id="lwList"></ul></div>
+        </div>
+        <p class="hint">ロック画面ウィジェットのイメージです。Webアプリでは本物のウィジェットは作れません。</p>
+      </section>
+
+      <!-- ===== 通知・設定 ===== -->
+      <section class="view" id="v-remind" hidden>
+        <h2 class="page-title">通知と設定</h2>
+        <div class="card">
+          <div class="setting"><div><b>通知を使う</b><p class="sub" id="notifState">まだ許可されていません</p></div><button class="btn small" id="notifAllow" type="button">許可する</button></div>
+          <div class="setting"><div><b>前日の夜に確認</b><p class="sub">明日の持ち物と雨を知らせる</p></div><input type="time" id="tNight" aria-label="前日の通知時刻"></div>
+          <div class="setting"><div><b>出発前に確認</b><p class="sub">未チェックがあれば知らせる</p></div><input type="time" id="tLeave" aria-label="出発前の通知時刻"></div>
+          <div class="setting"><div><b>家を出たら知らせる</b><p class="sub">自宅から200m離れたとき</p></div><input type="checkbox" class="switch" id="geoNotify" aria-label="家を出たら知らせる"></div>
+          <button class="btn ghost block" id="testNotify" type="button">通知をためす</button>
+          <p class="sub">※ 通知はアプリを開いているとき（ホーム画面に追加して起動中のときを含む）に届きます。</p>
+        </div>
+
+        <div class="card">
+          <div class="label">自宅の位置</div>
+          <p class="sub" id="homeState">まだ登録されていません</p>
+          <div class="row">
+            <button class="btn ghost" id="setHome" type="button">今いる場所を自宅にする</button>
+            <button class="btn ghost" id="clearHome" type="button">自宅を消す</button>
+          </div>
+          <label class="field">位置情報を使わないときの地域
+            <select id="citySel"></select>
+          </label>
+        </div>
+
+        <div class="card">
+          <div class="label">カレンダーに追加</div>
+          <pre class="share" id="calText"></pre>
+          <div class="row">
+            <a class="btn ghost" id="gcalLink" target="_blank" rel="noopener">Googleカレンダー</a>
+            <button class="btn ghost" id="icsBtn" type="button">カレンダー用ファイル（.ics）</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="label">記録</div>
+          <p class="sub">忘れ物の記録とチェックの状態は、このスマホの中だけに保存しています。</p>
+          <div class="confirm" id="resetBox">
+            <button class="btn danger" id="resetBtn" type="button">記録をすべて消す</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== 共有 ===== -->
+      <section class="view" id="v-share" hidden>
+        <h2 class="page-title">共有</h2>
+        <div class="card">
+          <div class="label">共有するテキスト</div>
+          <pre class="share" id="shareText"></pre>
+          <div class="row">
+            <button class="btn" id="shareBtn" type="button">共有する</button>
+            <button class="btn ghost" id="copyBtn" type="button">コピー</button>
+          </div>
+          <p class="sub">共有されるのは、このリストの文字だけです。</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="credit">天気データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a>（CC BY 4.0）</footer>
+
+    <nav class="tabs" role="tablist" aria-label="画面の切り替え">
+      <button role="tab" aria-selected="true" data-v="today"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="7" width="16" height="13" rx="2"/><path d="M9 7V5a3 3 0 0 1 6 0v2"/><path d="m9 13 2 2 4-4"/></svg>きょう</button>
+      <button role="tab" aria-selected="false" data-v="lock"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M10 6h4"/><rect x="8" y="12" width="8" height="5" rx="1"/></svg>ロック画面</button>
+      <button role="tab" aria-selected="false" data-v="remind"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>通知・設定</button>
+      <button role="tab" aria-selected="false" data-v="share"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg>共有</button>
+    </nav>
+    <div class="toast" id="toast" role="status"></div>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

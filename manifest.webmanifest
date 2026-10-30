@@ -1,0 +1,15 @@
+{
+  "name": "わすれナシ",
+  "short_name": "わすれナシ",
+  "description": "天気・予定・忘れ物の記録から、その日に必要な持ち物を教える忘れ物ゼロアプリ",
+  "lang": "ja",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#E9EEF0",
+  "theme_color": "#13836A",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
